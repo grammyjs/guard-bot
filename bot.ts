@@ -80,7 +80,7 @@ dm.hears(em, async (ctx) => {
     const res = await kv.get<string[]>([dm, "input"]);
     const current = res.value ?? [];
     current.push(ctx.msg.text);
-    if (current.length === 3) {
+    if (current.length >= 3) {
         const [i0, i1, i2] = current;
         const [s0, s1, s2] = predictEmoji(solution.value);
         if (i0 === s0 && i1 === s1 && i2 === s2) {
