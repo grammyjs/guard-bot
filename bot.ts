@@ -90,8 +90,8 @@ dm.hears(em, async (ctx) => {
             await ctx.reply(
                 "Incorrect. Are you sure that you are human? Please try again.",
             );
-            await kv.delete([dm, "input"]);
         }
+        await kv.delete([dm, "input"]);
     } else {
         await ctx.reply(`Current input: ${current.join("")}`);
         await kv.set([dm, "input"], current, {
