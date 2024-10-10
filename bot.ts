@@ -12,7 +12,7 @@ const welcomeMessage =
 const thirtyMinutesInMilliseconds = 30 * 60 * 1000;
 
 const em = [
-    emoji("minus"),
+    "BAR",
     emoji("blueberries"),
     emoji("lemon"),
     emoji("keycap_digit_seven"),
