@@ -33,7 +33,7 @@ const secretToken = bot.token.replaceAll(":", "_");
 // disable the bot for all groups except @grammyjs
 bot.on("my_chat_member")
     .chatType(["group", "supergroup", "channel"])
-    .drop((ctx) => ctx.chat.username === "@grammyjs")
+    .drop((ctx) => ctx.chat.username === "grammyjs")
     .use((ctx) => ctx.leaveChat());
 // DM a dice to users upon join request
 bot.on("chat_join_request", async (ctx) => {
