@@ -8,7 +8,7 @@ import { emoji } from "https://deno.land/x/grammy_emoji@v1.2.0/mod.ts";
 const kv = await Deno.openKv();
 
 const welcomeMessage =
-    "Hi! Glad to see that you want to join @grammyjs! Let me make sure that you are human. Which emojis do you see?";
+    "Hi! Glad to see that you want to join @grammyjs! Let me make sure that you are human. Which emojis do you see? Please use the buttons below!";
 const thirtyMinutesInMilliseconds = 30 * 60 * 1000;
 
 const em = [
@@ -84,7 +84,9 @@ dm.hears(em, async (ctx) => {
         const [i0, i1, i2] = current;
         const [s0, s1, s2] = predictEmoji(solution.value);
         if (i0 === s0 && i1 === s1 && i2 === s2) {
-            await ctx.reply("Correct! Welcome to @grammyjs!");
+            await ctx.reply("Correct! Welcome to @grammyjs!", {
+                reply_markup: { remove_keyboard: true },
+            });
             await ctx.api.approveChatJoinRequest("@grammyjs", ctx.from.id);
         } else {
             await ctx.reply(
@@ -109,7 +111,9 @@ dm.use(async (ctx) => {
         );
         return;
     }
-    await ctx.reply("Please use one of the provided buttons");
+    await ctx.reply("Please use one of the provided buttons", {
+        reply_markup: keyboard,
+    });
 });
 
 if (Deno.env.get("DEBUG")) bot.start();
