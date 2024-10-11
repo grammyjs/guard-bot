@@ -13,7 +13,7 @@ const thirtyMinutesInMilliseconds = 30 * 60 * 1000;
 
 const em = [
     "BAR",
-    emoji("blueberries"),
+    emoji("grapes"),
     emoji("lemon"),
     emoji("keycap_digit_seven"),
 ];
