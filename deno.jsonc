@@ -2,5 +2,8 @@
     "lock": false,
     "fmt": {
         "proseWrap": "preserve"
-    }
+    },
+    "unstable": [
+        "kv"
+    ]
 }
