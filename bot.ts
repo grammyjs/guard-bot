@@ -95,7 +95,7 @@ dm.hears(em, async (ctx) => {
         }
         await kv.delete([dm, "input"]);
     } else {
-        await ctx.reply(`Current input: ${current.join("")}`);
+        await ctx.reply(`Current input: ${current.join(" ")}`);
         await kv.set([dm, "input"], current, {
             expireIn: thirtyMinutesInMilliseconds,
         });
