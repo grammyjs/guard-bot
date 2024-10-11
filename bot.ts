@@ -9,6 +9,14 @@ const kv = await Deno.openKv();
 
 const welcomeMessage =
     "Hi! Glad to see that you want to join @grammyjs! Let me make sure that you are human. Which emojis do you see? Please use the buttons below!";
+const helpTextPreRequest =
+    "This bot protects the chat @grammyjs. You did not request to join it, so this bot does nothing for you right now.";
+const helpTextPostRequest = `
+You have requested to join @grammyjs. We are happy to welcome you to the chat as soon as you have confirmed that you are human.
+
+You can do this by sending me the three values that you see in the slot machine above. Simply tap three of the buttons beneath this message in the order that you see them.
+
+(If you are completely stuck and you have no idea how to solve this captcha, feel free to open an issue on GitHub. You can find the repository linked at the top of grammy.dev.)`;
 const thirtyMinutesInMilliseconds = 30 * 60 * 1000;
 
 const em = [
@@ -48,8 +56,19 @@ bot.on("chat_join_request", async (ctx) => {
         expireIn: thirtyMinutesInMilliseconds,
     });
 });
+// only respond in private chats
+const dm = bot.chatType("private");
+dm.command("help", async (ctx) => {
+    const dm = ctx.chatId;
+    const solution = await kv.get<number>([dm, "solution"]);
+    if (solution.value === null) {
+        await ctx.reply(helpTextPreRequest);
+    } else {
+        await ctx.reply(helpTextPostRequest, { reply_markup: keyboard });
+    }
+});
 // disable bot for members and banned accounts
-const dm = bot.chatType("private").on(":text").filter(async (ctx) => {
+const captcha = dm.on(":text").filter(async (ctx) => {
     const chatMember = await ctx.api.getChatMember("@grammyjs", ctx.from.id);
     switch (chatMember.status) {
         case "administrator":
@@ -67,7 +86,7 @@ const dm = bot.chatType("private").on(":text").filter(async (ctx) => {
     return true;
 });
 // handle emoji input from keyboard in DM
-dm.hears(em, async (ctx) => {
+captcha.hears(em, async (ctx) => {
     const dm = ctx.chatId;
     const solution = await kv.get<number>([dm, "solution"]);
     if (solution.value === null) {
@@ -102,7 +121,7 @@ dm.hears(em, async (ctx) => {
     }
 });
 // handle any other updates
-dm.use(async (ctx) => {
+captcha.use(async (ctx) => {
     const dm = ctx.chatId;
     const solution = await kv.get<number>([dm, "solution"]);
     if (solution.value === null) {
