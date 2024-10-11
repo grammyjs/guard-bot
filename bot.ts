@@ -76,7 +76,9 @@ bot.on("chat_join_request", async (ctx) => {
 });
 async function sendCaptcha(ctx: Context, chatId: number) {
     const message = await ctx.api.sendDice(chatId, emoji("slot_machine"));
-    await ctx.api.sendMessage(chatId, inputMessage(), { reply_markup: keyboard });
+    await ctx.api.sendMessage(chatId, inputMessage(), {
+        reply_markup: keyboard,
+    });
     const value = message.dice.value;
     await kv.set([chatId, "solution"], value, {
         expireIn: thirtyMinutesInMilliseconds,
@@ -127,13 +129,12 @@ captcha.callbackQuery(em, async (ctx) => {
     const current = res.value ?? [];
     current.push(ctx.callbackQuery.data);
     if (current.length >= 3) {
-        await ctx.editMessageText(inputMessage(...current), {
-            reply_markup: undefined,
-        });
         const [i0, i1, i2] = current;
         const [s0, s1, s2] = predictEmoji(solution.value);
         if (i0 === s0 && i1 === s1 && i2 === s2) {
-            await ctx.editMessageText(correctMessage(i0, i1, i2));
+            await ctx.editMessageText(correctMessage(i0, i1, i2), {
+                reply_markup: undefined,
+            });
             if (!isDebug) {
                 await ctx.api.approveChatJoinRequest("@grammyjs", ctx.from.id);
             }
