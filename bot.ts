@@ -76,7 +76,7 @@ bot.on("chat_join_request", async (ctx) => {
 });
 async function sendCaptcha(ctx: Context, chatId: number) {
     const message = await ctx.api.sendDice(chatId, emoji("slot_machine"));
-    await ctx.reply(inputMessage(), { reply_markup: keyboard });
+    await ctx.api.sendMessage(chatId, inputMessage(), { reply_markup: keyboard });
     const value = message.dice.value;
     await kv.set([chatId, "solution"], value, {
         expireIn: thirtyMinutesInMilliseconds,
