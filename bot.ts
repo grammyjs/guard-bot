@@ -72,18 +72,41 @@ bot.on("my_chat_member")
 bot.on("chat_join_request", async (ctx) => {
     const dm = ctx.chatJoinRequest.user_chat_id;
     await ctx.api.sendMessage(dm, welcomeMessage);
-    await sendCaptcha(ctx, dm);
+    await sendCaptcha(ctx, dm, ctx.from.id);
 });
-async function sendCaptcha(ctx: Context, chatId: number) {
-    const message = await ctx.api.sendDice(chatId, emoji("slot_machine"));
-    await ctx.api.sendMessage(chatId, inputMessage(), {
+async function sendCaptcha(ctx: Context, chatId: number, userId: number) {
+    const { dice } = await ctx.api.sendDice(chatId, emoji("slot_machine"));
+    const { message_id } = await ctx.api.sendMessage(chatId, inputMessage(), {
         reply_markup: keyboard,
     });
-    const value = message.dice.value;
-    await kv.set([chatId, "solution"], value, {
-        expireIn: thirtyMinutesInMilliseconds,
+    await kv.set([chatId, "solution"], dice.value, {
+        // set expiry for the rare case that the queue task is not delivered
+        expireIn: 2 * thirtyMinutesInMilliseconds,
+    });
+    await kv.enqueue({ chatId, userId, messageId: message_id }, {
+        delay: thirtyMinutesInMilliseconds,
     });
 }
+kv.listenQueue(async ({ chatId, userId, messageId }) => {
+    const member = await bot.api.getChatMember("@grammyjs", userId);
+    // only run if the member has not joined yet
+    if (member.status !== "left") return;
+    // only run if the captcha has not been solved yet
+    const solution = await kv.get<number>([chatId, "solution"]);
+    if (solution.value === null) return;
+
+    const retry = new InlineKeyboard()
+        .url("Try again", "https://t.me/grammyjs");
+    await kv.delete([chatId, "solution"]);
+    await bot.api.editMessageText(
+        chatId,
+        messageId,
+        "Your request has expired.",
+        { reply_markup: retry },
+    ).catch(console.error);
+    await bot.api.declineChatJoinRequest("@grammyjs", userId)
+        .catch(console.error);
+});
 // only respond in private chats
 const dm = bot.chatType("private");
 dm.on("callback_query:data").fork((ctx) => ctx.answerCallbackQuery());
@@ -94,12 +117,15 @@ dm.command("help", async (ctx) => {
         solution.value === null ? helpTextPreRequest : helpTextPostRequest,
     );
 });
-dm.filter(() => isDebug).command("test", (ctx) => sendCaptcha(ctx, ctx.chatId));
+dm.filter(() => isDebug).command(
+    "test",
+    (ctx) => sendCaptcha(ctx, ctx.chatId, ctx.from.id),
+);
 // disable bot for members and banned accounts
 const captcha = dm.filter(async (ctx) => {
     if (isDebug) return true;
-    const chatMember = await ctx.api.getChatMember("@grammyjs", ctx.from.id);
-    switch (chatMember.status) {
+    const member = await ctx.api.getChatMember("@grammyjs", ctx.from.id);
+    switch (member.status) {
         case "administrator":
         case "creator":
             await ctx.reply("You are admin in @grammyjs already!");
@@ -139,6 +165,7 @@ captcha.callbackQuery(em, async (ctx) => {
             if (!isDebug) {
                 await ctx.api.approveChatJoinRequest("@grammyjs", ctx.from.id);
             }
+            await kv.delete([dm, "solution"]);
         } else {
             await ctx.editMessageText(incorrectMessage(i0, i1, i2), {
                 reply_markup: new InlineKeyboard().text("Try again", "again"),
@@ -180,7 +207,7 @@ captcha.callbackQuery("back", async (ctx) => {
 // handle try again button
 captcha.callbackQuery("again", async (ctx) => {
     await ctx.editMessageReplyMarkup([]);
-    await sendCaptcha(ctx, ctx.chatId);
+    await sendCaptcha(ctx, ctx.chatId, ctx.from.id);
 });
 // handle any other updates
 captcha.use(async (ctx) => {
