@@ -40,7 +40,7 @@ You have requested to join @grammyjs. We are happy to welcome you to the chat as
 You can do this by sending me the three values that you see in the slot machine above. Simply tap three of the buttons above in the order that you see them.
 
 (If you are completely stuck and you have no idea how to solve this captcha, feel free to open an issue on GitHub and tell us your Telegram username so we can add you to the chat. You can find the repository linked at the top of grammy.dev.)`;
-const thirtyMinutesInMilliseconds = 30 * 60 * 1000;
+const thirtyMinutesInMilliseconds = 120 * 1000;
 
 const em = [
     emoji("minus"),
