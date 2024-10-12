@@ -86,6 +86,7 @@ async function sendCaptcha(ctx: Context, chatId: number) {
 }
 // only respond in private chats
 const dm = bot.chatType("private");
+dm.on("callback_query:data").fork((ctx) => ctx.answerCallbackQuery());
 dm.command("help", async (ctx) => {
     const dm = ctx.chatId;
     const solution = await kv.get<number>([dm, "solution"]);
@@ -167,10 +168,7 @@ captcha.callbackQuery("back", async (ctx) => {
 
     const res = await kv.get<string[]>([dm, "input"]);
     const current = res.value ?? [];
-    if (current.length === 0) {
-        await ctx.answerCallbackQuery();
-        return;
-    }
+    if (current.length === 0) return;
     current.pop();
     await ctx.editMessageText(inputMessage(...current), {
         reply_markup: keyboard,
