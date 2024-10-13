@@ -98,6 +98,7 @@ kv.listenQueue(async ({ chatId, userId, messageId }) => {
     const retry = new InlineKeyboard()
         .url("Try again", "https://t.me/grammyjs");
     await kv.delete([chatId, "solution"]);
+    await kv.delete([chatId, "input"]);
     await bot.api.editMessageText(
         chatId,
         messageId,
