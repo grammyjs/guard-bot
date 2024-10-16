@@ -207,7 +207,7 @@ captcha.callbackQuery("back", async (ctx) => {
 });
 // handle try again button
 captcha.callbackQuery("again", async (ctx) => {
-    await ctx.editMessageReplyMarkup([]);
+    await ctx.editMessageReplyMarkup();
     await sendCaptcha(ctx, ctx.chatId, ctx.from.id);
 });
 // handle any other updates
