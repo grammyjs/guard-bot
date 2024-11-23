@@ -3,7 +3,7 @@ import {
     type Context,
     InlineKeyboard,
     webhookCallback,
-} from "https://deno.land/x/grammy@v1.30.0/mod.ts";
+} from "https://deno.land/x/grammy@v1.32.0/mod.ts";
 import { emoji } from "https://deno.land/x/grammy_emoji@v1.2.0/mod.ts";
 
 const isDebug = !!Deno.env.get("DEBUG");
@@ -61,15 +61,18 @@ const keyboard = InlineKeyboard.from([em.map((e) => InlineKeyboard.text(e))])
     .row().text(emoji("back_arrow"), "back");
 
 const bot = new Bot(Deno.env.get("BOT_TOKEN") ?? "");
+const safe = bot.errorBoundary((err) => {
+    console.error(err);
+});
 const secretToken = bot.token.replaceAll(":", "_");
 
 // disable the bot for all groups except @grammyjs
-bot.on("my_chat_member")
+safe.on("my_chat_member")
     .chatType(["group", "supergroup", "channel"])
     .drop((ctx) => ctx.chat.username === "grammyjs")
     .use((ctx) => ctx.leaveChat());
 // DM a dice to users upon join request
-bot.on("chat_join_request", async (ctx) => {
+safe.on("chat_join_request", async (ctx) => {
     const dm = ctx.chatJoinRequest.user_chat_id;
     await ctx.api.sendMessage(dm, welcomeMessage);
     await sendCaptcha(ctx, dm, ctx.from.id);
@@ -109,7 +112,7 @@ kv.listenQueue(async ({ chatId, userId, messageId }) => {
         .catch(console.error);
 });
 // only respond in private chats
-const dm = bot.chatType("private");
+const dm = safe.chatType("private");
 dm.on("callback_query:data").fork((ctx) => ctx.answerCallbackQuery());
 dm.command("help", async (ctx) => {
     const dm = ctx.chatId;
