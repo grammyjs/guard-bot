@@ -77,15 +77,22 @@ safe.on("chat_join_request", async (ctx) => {
   await ctx.api.sendMessage(dm, welcomeMessage);
   await sendCaptcha(ctx, dm, ctx.from.id);
 });
+interface Solution {
+  code: number;
+  created: number;
+}
 async function sendCaptcha(ctx: Context, chatId: number, userId: number) {
   const { dice } = await ctx.api.sendDice(chatId, emoji("slot_machine"));
   const { message_id } = await ctx.api.sendMessage(chatId, inputMessage(), {
     reply_markup: keyboard,
   });
-  await kv.set([chatId, "solution"], dice.value, {
+  const solution: Solution = { code: dice.value, created: Date.now() };
+  await kv.set(
+    [chatId, "solution"],
+    solution,
     // set expiry for the rare case that the queue task is not delivered
-    expireIn: 2 * thirtyMinutesInMilliseconds,
-  });
+    { expireIn: 2 * thirtyMinutesInMilliseconds },
+  );
   await kv.enqueue({ chatId, userId, messageId: message_id }, {
     delay: thirtyMinutesInMilliseconds,
   });
@@ -95,7 +102,7 @@ kv.listenQueue(async ({ chatId, userId, messageId }) => {
   // only run if the member has not joined yet
   if (member.status !== "left") return;
   // only run if the captcha has not been solved yet
-  const solution = await kv.get<number>([chatId, "solution"]);
+  const solution = await kv.get([chatId, "solution"]);
   if (solution.value === null) return;
 
   const retry = new InlineKeyboard()
@@ -116,7 +123,7 @@ const dm = safe.chatType("private");
 dm.on("callback_query:data").fork((ctx) => ctx.answerCallbackQuery());
 dm.command("help", async (ctx) => {
   const dm = ctx.chatId;
-  const solution = await kv.get<number>([dm, "solution"]);
+  const solution = await kv.get([dm, "solution"]);
   await ctx.reply(
     solution.value === null ? helpTextPreRequest : helpTextPostRequest,
   );
@@ -147,7 +154,7 @@ const captcha = dm.filter(async (ctx) => {
 // handle emoji input from inline keyboard
 captcha.callbackQuery(em, async (ctx) => {
   const dm = ctx.chatId;
-  const solution = await kv.get<number>([dm, "solution"]);
+  const solution = await kv.get<Solution>([dm, "solution"]);
   if (solution.value === null) {
     await ctx.editMessageText(
       "The captcha has expired. You need to request to join @grammyjs again.",
@@ -161,8 +168,14 @@ captcha.callbackQuery(em, async (ctx) => {
   current.push(ctx.callbackQuery.data);
   if (current.length >= 3) {
     const [i0, i1, i2] = current;
-    const [s0, s1, s2] = predictEmoji(solution.value);
+    const [s0, s1, s2] = predictEmoji(solution.value.code);
     if (i0 === s0 && i1 === s1 && i2 === s2) {
+      const duration = Date.now() - solution.value.created;
+      const username = ctx.from.username === undefined
+        ? ""
+        : ` (https://t.me/${ctx.from.username})`;
+      const user = `'${ctx.from.first_name}'${username}`;
+      console.log(`Accepted ${user} who solved the captcha in ${duration} ms`);
       await ctx.editMessageText(correctMessage(i0, i1, i2), {
         reply_markup: undefined,
       });
