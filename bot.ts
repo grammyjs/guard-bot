@@ -60,7 +60,11 @@ const keyboard = InlineKeyboard.from([em.map((e) => InlineKeyboard.text(e))])
   .toFlowed(2)
   .row().text(emoji("back_arrow"), "back");
 
-const bot = new Bot(Deno.env.get("BOT_TOKEN") ?? "");
+const token = Deno.env.get("BOT_TOKEN") ?? "";
+const me = Deno.env.get("BOT_INFO");
+const bot = new Bot(token, {
+  botInfo: me === undefined ? undefined : JSON.parse(me),
+});
 const safe = bot.errorBoundary((err) => {
   console.error(err);
 });
