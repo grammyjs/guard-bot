@@ -3,7 +3,7 @@ import {
   type Context,
   InlineKeyboard,
   webhookCallback,
-} from "https://deno.land/x/grammy@v1.32.0/mod.ts";
+} from "https://deno.land/x/grammy@v1.34.0/mod.ts";
 import { emoji } from "https://deno.land/x/grammy_emoji@v1.2.0/mod.ts";
 
 const isDebug = !!Deno.env.get("DEBUG");
@@ -34,12 +34,21 @@ ${emoji("cross_mark")}:  ${first}${second}${third}`;
 
 const helpTextPreRequest =
   "This bot protects the chat @grammyjs. You did not request to join it, so this bot does nothing for you right now.";
+const helpInstructionStuck =
+  "If you are completely stuck and you have no idea how to solve this captcha, feel free to open an issue on GitHub and tell us your Telegram username so we can add you to the chat. You can find the repository linked at the top of grammy.dev.";
 const helpTextPostRequest = `
 You have requested to join @grammyjs. We are happy to welcome you to the chat as soon as you have confirmed that you are human.
 
 You can do this by sending me the three values that you see in the slot machine above. Simply tap three of the buttons above in the order that you see them.
 
-(If you are completely stuck and you have no idea how to solve this captcha, feel free to open an issue on GitHub and tell us your Telegram username so we can add you to the chat. You can find the repository linked at the top of grammy.dev.)`;
+(${helpInstructionStuck})`;
+const helpTextPostFailure = `The slot machine ${
+  emoji("slot_machine")
+} above clearly displays three symbols. You need to press the respective buttons to enter the right code.
+
+Note that the slot machine should be animated. If it does not display correctly, you need to disable power savings and try again. Alternatively, check this chat on a different device, such as your phone.
+
+${helpInstructionStuck}`;
 const thirtyMinutesInMilliseconds = 30 * 60 * 1000;
 
 const em = [
@@ -189,7 +198,9 @@ captcha.callbackQuery(em, async (ctx) => {
       await kv.delete([dm, "solution"]);
     } else {
       await ctx.editMessageText(incorrectMessage(i0, i1, i2), {
-        reply_markup: new InlineKeyboard().text("Try again", "again"),
+        reply_markup: new InlineKeyboard()
+          .text("Try again", "again")
+          .text(`I need help ${emoji("loudly_crying_face")}`, "help"),
       });
     }
     await kv.delete([dm, "input"]);
@@ -229,6 +240,10 @@ captcha.callbackQuery("back", async (ctx) => {
 captcha.callbackQuery("again", async (ctx) => {
   await ctx.editMessageReplyMarkup();
   await sendCaptcha(ctx, ctx.chatId, ctx.from.id);
+});
+// handle failure help button
+captcha.callbackQuery("help", async (ctx) => {
+  await ctx.reply(helpTextPostFailure);
 });
 // handle any other updates
 captcha.use(async (ctx) => {
